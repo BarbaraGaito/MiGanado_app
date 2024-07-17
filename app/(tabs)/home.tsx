@@ -1,8 +1,8 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState, useCallback } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View, Modal, TextInput, Button } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faChartColumn, faClipboardCheck, faCow, faFileMedical, faFlask, faPlus,faMapLocationDot, faSyringe, faUserDoctor } from '@fortawesome/free-solid-svg-icons';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
@@ -56,83 +56,92 @@ export default function HomeScreen() {
     setShowOptions(false);
   };
 
+  const fetchNotificaciones = async () => {
+    try {
+      const data = await getUserNotificaciones(userId);
+      setNotificaciones(data);
+
+      // Crear un objeto para marcar las fechas con notificaciones
+      const marked = {};
+      data.forEach(notificacion => {
+        const fechaNotificacion = dayjs(notificacion.fecha).startOf('day');
+
+        var notificacionDate = dayjs(notificacion.fecha).startOf('day').format("YYYY-MM-DD");
+        // Comparación de fechas
+        if (fechaNotificacion.format("YYYY-MM-DD'T'HH:mm:ss'Z'") !== dayjs(notificacion.fecha).format("YYYY-MM-DD'T'HH:mm:ss'Z'")) {
+           notificacionDate = dayjs(notificacion.fecha).startOf('day').add(1, 'day').format("YYYY-MM-DD");
+        } 
+       
+        console.log(notificacionDate);
+        marked[notificacionDate] = { 
+          selected: true,
+          selectedColor: '#d3d3d3',
+          // Opcional: añadir un borde gris alrededor del número del día
+          customStyles: {
+            container: {
+              borderWidth: 1,
+              borderColor: '#d3d3d3',
+              borderRadius: 5,
+            },
+            text: {
+              color: '#000', // Color del número del día
+            },
+          },
+        };
+      });
+
+      // Marcar también el día actual
+      const today = dayjs().format('YYYY-MM-DD');
+      marked[today] = {
+        selected: true,
+        selectedColor: '#B43A3A'
+      };
+
+      // Actualizar el estado de markedDates con las fechas marcadas
+      setMarkedDates(marked);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    }
+  };
+
   useEffect(() => {
     if (userId) {
       fetchUserName(userId);
-    }
-
-    const fetchNotificaciones = async () => {
-      try {
-        const data = await getUserNotificaciones(userId);
-        setNotificaciones(data);
-
-        // Crear un objeto para marcar las fechas con notificaciones
-        const marked = {};
-        data.forEach(notificacion => {
-          const fechaNotificacion = dayjs(notificacion.fecha).startOf('day');
-
-          var notificacionDate = dayjs(notificacion.fecha).startOf('day').format("YYYY-MM-DD");
-          // Comparación de fechas
-          if (fechaNotificacion.format("YYYY-MM-DD'T'HH:mm:ss'Z'") !== dayjs(notificacion.fecha).format("YYYY-MM-DD'T'HH:mm:ss'Z'")) {
-             notificacionDate = dayjs(notificacion.fecha).startOf('day').add(1, 'day').format("YYYY-MM-DD");
-          } 
-         
-          console.log(notificacionDate);
-          marked[notificacionDate] = { 
-            selected: true,
-            selectedColor: '#d3d3d3',
-            // Opcional: añadir un borde gris alrededor del número del día
-            customStyles: {
-              container: {
-                borderWidth: 1,
-                borderColor: '#d3d3d3',
-                borderRadius: 5,
-              },
-              text: {
-                color: '#000', // Color del número del día
-              },
-            },
-          };
-        });
-
-        // Marcar también el día actual
-        const today = dayjs().format('YYYY-MM-DD');
-        marked[today] = {
-          selected: true,
-          selectedColor: '#B43A3A'
-        };
-
-        // Actualizar el estado de markedDates con las fechas marcadas
-        setMarkedDates(marked);
-      } catch (error) {
-        console.error('Error fetching notifications:', error);
-      }
-    };
-
-    if (userId) {
       fetchNotificaciones();
     }
   }, [userId]);
 
-  useEffect(() => {
-    const filterNotificaciones = () => {
-      const selectedDateStr = dayjs(selectedDate).format('YYYY-MM-DD');
-      const filtered = notificaciones.filter((notificacion) => {
-        // const notificacionDateStr = dayjs(notificacion.fecha).format('YYYY-MM-DD');
+  useFocusEffect(
+    useCallback(() => {
+      if (userId) {
+        fetchUserName(userId);
+        fetchNotificaciones();
+        filterNotificaciones();
+      }
+    }, [userId])
+  );
+
+  const filterNotificaciones = () => {
+    const selectedDateStr = dayjs(selectedDate).format('YYYY-MM-DD');
+    const filtered = notificaciones.filter((notificacion) => {
+      // const notificacionDateStr = dayjs(notificacion.fecha).format('YYYY-MM-DD');
+      
+
+      const fechaNotificacion = dayjs(notificacion.fecha).startOf('day');
+
+        var notificacionDate = dayjs(notificacion.fecha).format("YYYY-MM-DD");
+        // Comparación de fechas
+        if (fechaNotificacion.format("YYYY-MM-DD'T'HH:mm:ss'Z'") == dayjs(notificacion.fecha).format("YYYY-MM-DD'T'HH:mm:ss'Z'")) {
+           notificacionDate = dayjs(notificacion.fecha).startOf('day').add(-1, 'day').format("YYYY-MM-DD");
+        } 
         
-
-        const fechaNotificacion = dayjs(notificacion.fecha).startOf('day');
-
-          var notificacionDate = dayjs(notificacion.fecha).format("YYYY-MM-DD");
-          // Comparación de fechas
-          if (fechaNotificacion.format("YYYY-MM-DD'T'HH:mm:ss'Z'") == dayjs(notificacion.fecha).format("YYYY-MM-DD'T'HH:mm:ss'Z'")) {
-             notificacionDate = dayjs(notificacion.fecha).startOf('day').add(-1, 'day').format("YYYY-MM-DD");
-          } 
-          
-        return notificacionDate === selectedDateStr;
-      });
-      setFilteredNotificaciones(filtered);
-    };
+      return notificacionDate === selectedDateStr;
+    });
+    setFilteredNotificaciones(filtered);
+  };
+  
+  useEffect(() => {
+   
 
     filterNotificaciones();
   }, [selectedDate, notificaciones]);
@@ -177,7 +186,9 @@ export default function HomeScreen() {
     setNotificaciones([...notificaciones, notificacion]);
     setNuevaNotificacion('');
     setTipoNotificacion('Seleccione una opción'); // Reiniciar el tipo de notificación
+    fetchNotificaciones();
     setModalVisible(false);
+    
   };
 
   const onChangeFecha = (event, selectedDate) => {
@@ -190,7 +201,7 @@ export default function HomeScreen() {
     <View style={styles.containerColor}>
       <ThemedView style={styles.container}>
       <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title" style={styles.title}>¡Bienvenido, {userName}!</ThemedText>
+        <ThemedText type="title" style={styles.title}>¡Bienvenido, {userName.split(' ')[0]}!</ThemedText>
       </ThemedView>
 
       <ScrollView style={styles.scrollContainer}>
