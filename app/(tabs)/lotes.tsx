@@ -1,59 +1,71 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faAngleRight, faPlus, faTrash } from '@fortawesome/free-solid-svg-icons';
-import { getUserLotes, createLote, deleteLote } from '../../api/api';
+import { getUserLotes, createLote, deleteLote, buscarAnimalLote } from '../../api/api'; // Importar la función buscarAnimalLote
 import { UserContext } from '../../api/UserContext';
-import { useNavigation } from '@react-navigation/native'; // Importar hook de navegación
+import { ThemedText } from '@/components/ThemedText';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 
 const ListItem = ({ item, onPress, isSelected, isDeleting, onDelete }) => (
   <TouchableOpacity
     style={[styles.itemContainer, isSelected && styles.selectedItem]}
     onPress={() => (isDeleting ? onDelete(item) : onPress(item))}
   >
-    <Text style={styles.itemName}>{item.nombre_lote}</Text>
-    <View>
-      <Text style={styles.itemCount}>{item.capacidad}/{item.capacidad_max} animales</Text>
+    <View style={{flexDirection: 'column',
+    alignItems: 'center',paddingHorizontal: 10}}>
+      <ThemedText type="caption">Lote N°{item.numero}</ThemedText>
+      <ThemedText type='subtitle'>{item.nombre_lote}</ThemedText>
     </View>
-    <FontAwesomeIcon 
-      icon={isDeleting ? faTrash : faAngleRight} 
-      size={20} 
-      color={isDeleting ? 'red' : '#000000'} 
-      style={styles.icon} 
+    <View>
+      <ThemedText style={styles.itemCount}>{item.animalCount || 0}/{item.capacidad_max} animales</ThemedText>
+    </View>
+    <FontAwesomeIcon
+      icon={isDeleting ? faTrash : faAngleRight}
+      size={20}
+      color={isDeleting ? 'red' : '#000000'}
+      style={styles.icon}
     />
   </TouchableOpacity>
 );
 
 export default function TabTwoScreen() {
   const { userId } = useContext(UserContext);
-  const [lotes, setLotes] = useState([]); 
+  const [lotes, setLotes] = useState([]);
   const [selectedLote, setSelectedLote] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const navigation = useNavigation(); // Hook de navegación
+  const navigation = useNavigation();
 
-  useEffect(() => {
-    const fetchLotes = async () => {
-      try {
-        const userLotes = await getUserLotes(userId);
-        setLotes(userLotes);
-      } catch (error) {
-        console.error('Error al obtener los lotes del usuario:', error.message);
-      }
-    };
+  const fetchLotes = useCallback(async () => {
+    try {
+      const userLotes = await getUserLotes(userId);
 
-    fetchLotes();
+      const lotesConAnimales = await Promise.all(
+        userLotes.map(async lote => {
+          const animales = await buscarAnimalLote(userId, lote.numero);
+          return { ...lote, animalCount: animales.length };
+        })
+      );
+
+      setLotes(lotesConAnimales);
+    } catch (error) {
+      console.error('Error al obtener los lotes del usuario:', error.message);
+    }
   }, [userId]);
 
-  const handleCreateLote = async () => {
-    if (lotes && lotes.length >= 4) {
-      Alert.alert('Límite de lotes', 'Cada usuario solo puede tener un máximo de 4 lotes.');
-      return;
-    }
+  useFocusEffect(
+    useCallback(() => {
+      fetchLotes();
+      setSelectedLote(null);
+    }, [fetchLotes])
+  );
 
+  const handleCreateLote = async () => {
     try {
+      const highestNumero = lotes.reduce((max, lote) => (lote.numero > max ? lote.numero : max), 0);
       const newLote = {
-        nombre_lote: "Lote nuevo "+ (lotes.length + 1),
-        numero: lotes ? lotes.length + 1 : 1,
+        nombre_lote: "Lote nuevo " + (highestNumero + 1),
+        numero: highestNumero + 1,
         capacidad: 0,
         capacidad_max: 100,
         tipo_animal: 'vaca',
@@ -68,10 +80,10 @@ export default function TabTwoScreen() {
 
   const handleDeleteLote = async (item) => {
     try {
-      console.log(item.id);
       await deleteLote(item.id);
       setLotes(prevLotes => prevLotes.filter(lote => lote.id !== item.id));
       setSelectedLote(null);
+      setIsDeleting(false);
     } catch (error) {
       Alert.alert('Error', 'Error al eliminar el lote. Inténtalo de nuevo más tarde.');
     }
@@ -84,14 +96,15 @@ export default function TabTwoScreen() {
   const handleSelectLote = (item) => {
     if (!isDeleting) {
       setSelectedLote(item);
-      navigation.navigate('vistas/buscar_animal_lote', { lote: item }); 
+      navigation.navigate('vistas/buscar_animal_lote', { lote: item });
     }
   };
 
   return (
-    <View style={styles.container}>
+    <View style={styles.containerColor}>
+      <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Mis lotes</Text>
+        <ThemedText type='title' style={styles.title}>Mis lotes</ThemedText>
         <View style={styles.icons}>
           <TouchableOpacity style={styles.iconButton} onPress={handleCreateLote}>
             <FontAwesomeIcon icon={faPlus} size={24} color="#000000" style={styles.icon} />
@@ -104,26 +117,33 @@ export default function TabTwoScreen() {
       <FlatList
         data={lotes || []}
         renderItem={({ item }) => (
-          <ListItem 
-            item={item} 
-            onPress={handleSelectLote} 
-            isSelected={selectedLote && selectedLote.id === item.id} 
+          <ListItem
+            item={item}
+            onPress={handleSelectLote}
+            isSelected={selectedLote && selectedLote.id === item.id}
             isDeleting={isDeleting}
             onDelete={handleDeleteLote}
           />
         )}
         keyExtractor={item => item.id.toString()}
         contentContainerStyle={styles.list}
-      />  
+      />
+    </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  containerColor:{
+    flex: 1,
+    backgroundColor: '#407157',
+  },
   container: {
     flex: 1,
-    backgroundColor: '#f8f8f8',
+    backgroundColor: '#fff',
     paddingTop: 50,
+    borderTopRightRadius: 40,
+    borderTopLeftRadius: 40,
   },
   header: {
     flexDirection: 'row',
@@ -134,7 +154,6 @@ const styles = StyleSheet.create({
   },
   title: {
     marginLeft: 20,
-    fontSize: 24,
     fontWeight: 'bold',
     fontFamily: 'JostRegular',
   },
@@ -148,19 +167,20 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   list: {
-    paddingHorizontal: 20,
+    padding: 20,
+
   },
   itemContainer: {
     backgroundColor: '#fff',
-    padding: 40,
-    marginTop: 40,
-    borderRadius: 10,
+    padding: 20,
+    borderRadius: 15,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginVertical: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.2,
     shadowRadius: 10,
     elevation: 5,
   },
@@ -171,6 +191,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     fontFamily: 'JostBold',
+  },
+  numName: {
+    fontSize: 12,
+    fontFamily: 'JostRegular',
+    alignItems: 'center',
+    marginLeft: 15,
   },
   itemCount: {
     fontSize: 14,

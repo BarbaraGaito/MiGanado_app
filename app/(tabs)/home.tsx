@@ -69,10 +69,16 @@ export default function HomeScreen() {
         // Crear un objeto para marcar las fechas con notificaciones
         const marked = {};
         data.forEach(notificacion => {
-          const notificacionDate = dayjs(notificacion.fecha).add(1, 'day');
-          const notificacionDateStr = notificacionDate.format('YYYY-MM-DD');
+          const fechaNotificacion = dayjs(notificacion.fecha).startOf('day');
 
-          marked[notificacionDateStr] = { 
+          var notificacionDate = dayjs(notificacion.fecha).startOf('day').format("YYYY-MM-DD");
+          // Comparación de fechas
+          if (fechaNotificacion.format("YYYY-MM-DD'T'HH:mm:ss'Z'") !== dayjs(notificacion.fecha).format("YYYY-MM-DD'T'HH:mm:ss'Z'")) {
+             notificacionDate = dayjs(notificacion.fecha).startOf('day').add(1, 'day').format("YYYY-MM-DD");
+          } 
+         
+          console.log(notificacionDate);
+          marked[notificacionDate] = { 
             selected: true,
             selectedColor: '#d3d3d3',
             // Opcional: añadir un borde gris alrededor del número del día
@@ -112,8 +118,18 @@ export default function HomeScreen() {
     const filterNotificaciones = () => {
       const selectedDateStr = dayjs(selectedDate).format('YYYY-MM-DD');
       const filtered = notificaciones.filter((notificacion) => {
-        const notificacionDateStr = dayjs(notificacion.fecha).format('YYYY-MM-DD');
-        return notificacionDateStr === selectedDateStr;
+        // const notificacionDateStr = dayjs(notificacion.fecha).format('YYYY-MM-DD');
+        
+
+        const fechaNotificacion = dayjs(notificacion.fecha).startOf('day');
+
+          var notificacionDate = dayjs(notificacion.fecha).format("YYYY-MM-DD");
+          // Comparación de fechas
+          if (fechaNotificacion.format("YYYY-MM-DD'T'HH:mm:ss'Z'") == dayjs(notificacion.fecha).format("YYYY-MM-DD'T'HH:mm:ss'Z'")) {
+             notificacionDate = dayjs(notificacion.fecha).startOf('day').add(-1, 'day').format("YYYY-MM-DD");
+          } 
+          
+        return notificacionDate === selectedDateStr;
       });
       setFilteredNotificaciones(filtered);
     };
@@ -171,7 +187,8 @@ export default function HomeScreen() {
   };
 
   return (
-    <ThemedView style={styles.container}>
+    <View style={styles.containerColor}>
+      <ThemedView style={styles.container}>
       <ThemedView style={styles.titleContainer}>
         <ThemedText type="title" style={styles.title}>¡Bienvenido, {userName}!</ThemedText>
       </ThemedView>
@@ -356,13 +373,19 @@ export default function HomeScreen() {
         <View style={{height: 25}}></View>
       </ScrollView>
     </ThemedView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  containerColor:{
+    flex: 1,
+    backgroundColor: '#407157',
+  },
   container: {
     flex: 1,
     padding: 10,
+    paddingTop: 20,
     paddingBottom: 0,
     borderTopRightRadius: 40,
     borderTopLeftRadius: 40,
@@ -437,6 +460,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 0,
     paddingTop: 20,
+    borderRadius: 99,
     paddingHorizontal: 20,
     flexDirection: 'row', // Para alinear el botón junto al título
     justifyContent: 'space-between', // Para espacio entre título y botón

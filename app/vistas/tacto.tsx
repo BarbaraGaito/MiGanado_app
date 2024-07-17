@@ -4,7 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { UserContext } from '../../api/UserContext';
-import { createTacto, buscarAnimal, actualizarPrenies } from '../../api/api';
+import { createTacto, buscarAnimal, actualizarPrenies, getUserLotes } from '../../api/api';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faTimesCircle } from '@fortawesome/free-solid-svg-icons';
 
@@ -92,6 +92,19 @@ const TactoScreen = () => {
     const valid = await validar();
     if (valid) {
       try {
+        const lotes = await getUserLotes(userId);
+        console.log('Lotes:', lotes);
+        const numeroLoteInt = parseInt(numero_lote, 10);
+        const loteExiste = lotes.some(lote => {
+          console.log(`Comparando ${lote.numero} con ${numeroLoteInt}`); 
+          return lote.numero === numeroLoteInt;
+        });
+        
+          
+          if (!loteExiste) {
+            Alert.alert('Error', 'El lote especificado no existe.');
+            return;
+          }
         const tacto = await createTacto({ numero_lote, numeroCaravana, fecha, prenada, userId });
         console.log("Tacto registrado:", tacto);
         
@@ -118,37 +131,44 @@ const TactoScreen = () => {
   return (
     <ThemedView style={styles.container}>
       <ThemedText style={styles.title}>Tacto</ThemedText>
-      <TextInput
-        style={[styles.input, numeroLoteError && styles.errorInput]}
-        placeholder="Seleccione Lote"
-        value={numero_lote}
-        onChangeText={setNumeroLote}
-      />
-      {numeroLoteError && <ErrorIcon onPress={() => Alert.alert('Error', 'El campo Lote no puede estar vacío')} />}
 
-      <TextInput
-        style={[styles.input, numeroCaravanaError && styles.errorInput]}
-        placeholder="Número de caravana"
-        value={numeroCaravana}
-        onChangeText={setNumeroCaravana}
-      />
-      {numeroCaravanaError && (
-        <ErrorIcon
-          onPress={() =>
-            Alert.alert('Error', 'El campo Número de caravana no puede estar vacío')
-          }
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={[styles.input, numeroLoteError && styles.errorInput]}
+          placeholder="Seleccione Lote"
+          value={numero_lote}
+          onChangeText={setNumeroLote}
         />
-      )}
+        {numeroLoteError && <ErrorIcon onPress={() => Alert.alert('Error', 'El campo Lote no puede estar vacío')} />}
+      </View>
 
-      <TextInput
-        style={[styles.input, fechaError && styles.errorInput]}
-        placeholder="Fecha (YYYY-MM-DD)"
-        value={fecha}
-        onChangeText={setFecha}
-      />
-      {fechaError && (
-        <ErrorIcon onPress={() => Alert.alert('Error', 'El campo fecha no puede estar vacío')} />
-      )}
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={[styles.input, numeroCaravanaError && styles.errorInput]}
+          placeholder="Número de caravana"
+          value={numeroCaravana}
+          onChangeText={setNumeroCaravana}
+        />
+        {numeroCaravanaError && (
+          <ErrorIcon
+            onPress={() =>
+              Alert.alert('Error', 'El campo Número de caravana no puede estar vacío')
+            }
+          />
+        )}
+      </View>
+
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={[styles.input, fechaError && styles.errorInput]}
+          placeholder="Fecha (YYYY-MM-DD)"
+          value={fecha}
+          onChangeText={setFecha}
+        />
+        {fechaError && (
+          <ErrorIcon onPress={() => Alert.alert('Error', 'El campo fecha no puede estar vacío')} />
+        )}
+      </View>
 
       <View style={styles.checkboxContainer}>
         <TouchableOpacity
@@ -187,12 +207,15 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     textAlign: 'center',
   },
+  inputContainer: {
+    position: 'relative',
+    marginBottom: 16,
+  },
   input: {
     height: 50,
     borderColor: '#CCCCCC',
     borderWidth: 1,
     borderRadius: 20,
-    marginBottom: 16,
     paddingHorizontal: 10,
   },
   errorInput: {
