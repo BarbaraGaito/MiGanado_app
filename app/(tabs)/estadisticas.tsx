@@ -167,23 +167,29 @@ const EstadisticasScreen = () => {
             />
           </StatisticsCard>
 
+          
           <StatisticsCard title={calcularPromedioPeso()} value="Promedio de peso" subTitle="En el lote">
             {animalesEncontrado && animalesEncontrado.length > 0 ? (
-              <LineChart
-                data={lineChartData}
-                width={Dimensions.get("window").width - 40}
-                height={220}
-                chartConfig={chartConfig}
-                bezier
-                style={styles.chartStyle}
-                verticalLabelRotation={30}
-                yAxisSuffix=" kg"
-                fromZero={true}
-              />
+              <View style={styles.containerChart}>
+
+                <LineChart
+                  data={lineChartData}
+                  width={Dimensions.get("window").width - 40}
+                  height={220}
+                  chartConfig={chartConfig}
+                  bezier
+                  style={styles.chartStyle}
+                  verticalLabelRotation={30}
+                  horizontalLabelRotation={0}
+                  yAxisSuffix=" kg"
+                  fromZero={true}
+                />
+              </View>
             ) : (
               <ThemedText>No hay datos disponibles para mostrar el gráfico.</ThemedText>
             )}
           </StatisticsCard>
+          
         </View>
         <View style={{height: 65}}></View>
       </ScrollView>
@@ -195,12 +201,9 @@ const chartConfig = {
   backgroundColor: "#407157",
   backgroundGradientFrom: "#407157",
   backgroundGradientTo: "#407157",
-  decimalPlaces: 2,
+  decimalPlaces: 1,
   color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
   labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-  style: {
-    borderRadius: 16
-  },
   propsForDots: {
     r: "6",
     strokeWidth: "2",
@@ -224,6 +227,12 @@ const styles = StyleSheet.create({
     paddingTop: 25,
     borderTopRightRadius: 40,
     borderTopLeftRadius: 40,
+  },
+  containerChart: {
+     borderRadius: 15,
+     borderWidth: 3,
+     borderColor: '#407157',
+     backgroundColor: '#407157'
   },
   inputContainer: {
     position: 'relative',
@@ -284,8 +293,10 @@ const styles = StyleSheet.create({
   },
   chartStyle: {
     marginVertical: 8,
-    borderRadius: 16,
+    
     overflow: "hidden",
+    borderWidth: 5,
+    borderColor: '#407157', 
   },
   chartStyle2: {
     marginLeft: -20,

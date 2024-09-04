@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 
-const baseURL = 'http://192.168.0.58:8000/miGanado'; 
+const baseURL = 'http://172.20.10.2:8000/miGanado'; 
 
 
 const registerUser = async (userData) => {

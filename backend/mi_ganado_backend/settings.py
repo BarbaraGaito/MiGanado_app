@@ -58,6 +58,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://192.168.0.58:8081",
     "http://10.40.40.37:8081",
     "http://192.168.1.5:8081",
+    "http://172.20.10.2:8081",
+
 ]
 
 ROOT_URLCONF = 'mi_ganado_backend.urls'

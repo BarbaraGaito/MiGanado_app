@@ -98,8 +98,6 @@ const IngresarAnimalScreen = () => {
       setNumeroCaravana('');
       setPeso('');
       setEdad('');
-      setLotes('');
-      setTipos('');
       setPreniada(false);
       setReciennacida(false);
       Alert.alert('Éxito', 'Animal registrado correctamente.');

@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useContext, useEffect, useState, useCallback } from 'react';
 import { View, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert, Text, Image } from 'react-native';
 import Modal from 'react-native-modal';
 import { ThemedText } from '@/components/ThemedText';
@@ -6,7 +6,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faPen, faPlus, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { buscarAnimal, actualizarNombreLote, buscarAnimalLote, buscarTratam, buscarSan, deleteAnimal } from '../../api/api'; // Asegúrate de tener esta función en tu API
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { UserContext } from '../../api/UserContext';
 
 const AnimalSearchScreen = () => {
@@ -30,28 +30,35 @@ const AnimalSearchScreen = () => {
   const [tratamientoEncontrado, setTratamientoEncontrado] = useState(null);
   const [sangradoEncontrado, setSangradoEncontrado] = useState(null);
 
-  useEffect(() => {
-    const buscar = async () => {
-      const animales = await buscarAnimalLote(userId, numero_lote);
-      if (Array.isArray(animales) && animales.length > 0) {
-        const numerosCaravana = animales.map(animal => animal.numeroCaravana);
-        setCaravanas(numerosCaravana);
+  const buscar = async () => {
+    const animales = await buscarAnimalLote(userId, numero_lote);
+    if (Array.isArray(animales) && animales.length > 0) {
+      const numerosCaravana = animales.map(animal => animal.numeroCaravana);
+      setCaravanas(numerosCaravana);
 
-        // Buscar tratamiento y sangrado para el primer animal encontrado
-        if (animales.length > 0) {
-          const primerAnimal = animales[0];
-          const [tratamiento, sangrado] = await Promise.all([
-            buscarTratam(userId, primerAnimal.numeroCaravana),
-            buscarSan(userId, primerAnimal.numeroCaravana)
-          ]);
-          setTratamientoEncontrado(tratamiento);
-          setSangradoEncontrado(sangrado);
-        }
+      // Buscar tratamiento y sangrado para el primer animal encontrado
+      if (animales.length > 0) {
+        const primerAnimal = animales[0];
+        const [tratamiento, sangrado] = await Promise.all([
+          buscarTratam(userId, primerAnimal.numeroCaravana),
+          buscarSan(userId, primerAnimal.numeroCaravana)
+        ]);
+        setTratamientoEncontrado(tratamiento);
+        setSangradoEncontrado(sangrado);
       }
-    };
+    }
+  };
+  useEffect(() => {
+    
     buscar();
   }, [userId, numero_lote]);
 
+  useFocusEffect(
+    useCallback(() => {
+      buscar();
+      
+    }, [userId])
+  );
   const handleSearchAnimal = async () => {
     const animal = await buscarAnimal(userId, caravanaNumber);
     if (animal && animal.numeroCaravana === caravanaNumber) {
@@ -163,7 +170,7 @@ const AnimalSearchScreen = () => {
           {tratamientoEncontrado && tratamientoEncontrado.tratamiento ? (
             <View style={styles.tratamientoDetail}>
               <ThemedText style={styles.detail}>Tratamiento: {tratamientoEncontrado.tratamiento}</ThemedText>
-              <ThemedText style={styles.detail}>Fecha: {tratamientoEncontrado.fecha}</ThemedText>
+              <ThemedText style={styles.detail}>Fecha: {tratamientoEncontrado.fechaInicio}</ThemedText>
             </View>
           ) : (
             <View style={styles.tratamientoDetail}>
